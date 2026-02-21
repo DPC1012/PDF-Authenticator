@@ -215,7 +215,7 @@ export default function App() {
     try {
       const formData = new FormData()
       formData.append("pdf", signFile)
-      const res = await fetch("http://localhost:5000/sign", { method: "POST", body: formData })
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/sign`, { method: "POST", body: formData })
       const data = await res.json()
       setGeneratedSignature(data.signature)
     } finally {
@@ -230,7 +230,7 @@ export default function App() {
       const formData = new FormData()
       formData.append("pdf", verifyFile)
       formData.append("signature", verifySignatureInput)
-      const res = await fetch("http://localhost:5000/verify", { method: "POST", body: formData })
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/verify`, { method: "POST", body: formData })
       const data = await res.json()
       setStatus(data.valid)
     } finally {
