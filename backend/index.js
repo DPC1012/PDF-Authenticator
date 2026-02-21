@@ -11,54 +11,56 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// ── Memory storage (no disk writes) ──────────────────────────────────────────
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// ── Keys ──────────────────────────────────────────────────────────────────────
 const KEY_DIR = path.join(__dirname, "keys");
 if (!fs.existsSync(KEY_DIR)) fs.mkdirSync(KEY_DIR);
 
 let publicKey, privateKey;
 
 function loadOrCreateKeys() {
-  const pubPath = path.join(KEY_DIR, "public.pem");
-  const privPath = path.join(KEY_DIR, "private.pem");
-
-  if (fs.existsSync(pubPath) && fs.existsSync(privPath)) {
-    publicKey = fs.readFileSync(pubPath);
-    privateKey = fs.readFileSync(privPath);
-    console.log("Keys loaded from disk.");
+  if (process.env.DSA_PRIVATE_KEY && process.env.DSA_PUBLIC_KEY) {
+    privateKey = process.env.DSA_PRIVATE_KEY;
+    publicKey = process.env.DSA_PUBLIC_KEY;
+    console.log("Keys loaded from environment variables.");
   } else {
-    const keys = crypto.generateKeyPairSync("dsa", {
-      modulusLength: 2048,
-      divisorLength: 224,
-    });
+    const pubPath = path.join(KEY_DIR, "public.pem");
+    const privPath = path.join(KEY_DIR, "private.pem");
 
-    publicKey = keys.publicKey.export({ type: "spki", format: "pem" });
-    privateKey = keys.privateKey.export({ type: "pkcs8", format: "pem" });
+    if (fs.existsSync(pubPath) && fs.existsSync(privPath)) {
+      publicKey = fs.readFileSync(pubPath);
+      privateKey = fs.readFileSync(privPath);
+      console.log("Keys loaded from disk.");
+    } else {
+      const keys = crypto.generateKeyPairSync("dsa", {
+        modulusLength: 2048,
+        divisorLength: 224,
+      });
 
-    fs.writeFileSync(pubPath, publicKey);
-    fs.writeFileSync(privPath, privateKey);
-    console.log("New DSA key pair generated and saved.");
+      publicKey = keys.publicKey.export({ type: "spki", format: "pem" });
+      privateKey = keys.privateKey.export({ type: "pkcs8", format: "pem" });
+
+      fs.writeFileSync(pubPath, publicKey);
+      fs.writeFileSync(privPath, privateKey);
+      console.log("New DSA key pair generated and saved.");
+    }
   }
 }
 
 loadOrCreateKeys();
 
-// ── Hash helper — now takes a Buffer, not a file path ─────────────────────────
 function hashBuffer(buffer) {
   return crypto.createHash("sha256").update(buffer).digest();
 }
 
-// ── POST /sign ────────────────────────────────────────────────────────────────
 app.post("/sign", upload.single("pdf"), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No PDF uploaded." });
 
-    const hash = hashBuffer(req.file.buffer); // ✅ buffer, not path
+    const hash = hashBuffer(req.file.buffer);
 
     const signer = crypto.createSign("SHA256");
     signer.update(hash);
@@ -72,13 +74,12 @@ app.post("/sign", upload.single("pdf"), (req, res) => {
   }
 });
 
-// ── POST /verify ──────────────────────────────────────────────────────────────
 app.post("/verify", upload.single("pdf"), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No PDF uploaded." });
     if (!req.body.signature) return res.status(400).json({ error: "No signature provided." });
 
-    const hash = hashBuffer(req.file.buffer); // ✅ buffer, not path
+    const hash = hashBuffer(req.file.buffer);
 
     const verifier = crypto.createVerify("SHA256");
     verifier.update(hash);
@@ -92,7 +93,6 @@ app.post("/verify", upload.single("pdf"), (req, res) => {
   }
 });
 
-// ── Error handler (multer file size, etc.) ────────────────────────────────────
 app.use((err, req, res, next) => {
   if (err.code === "LIMIT_FILE_SIZE") {
     return res.status(413).json({ error: "File too large. Maximum size is 5MB." });
@@ -100,7 +100,6 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(5000, () => {
   console.log("Server running on http://localhost:5000");
 });
