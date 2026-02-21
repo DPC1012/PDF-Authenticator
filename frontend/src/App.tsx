@@ -142,7 +142,7 @@ function ActionButton({
       disabled={disabled}
       className={`
         w-full rounded-xl py-3 text-sm font-semibold transition-all duration-200
-        min-h-[48px] touch-manipulation
+        min-h-12 touch-manipulation
         ${disabled ? "bg-slate-700 text-slate-500 cursor-not-allowed" : active}
       `}
     >
@@ -259,7 +259,7 @@ export default function App() {
         }}
       />
 
-      <div className="h-[3px] w-full bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500" />
+      <div className="h-0.75 w-full bg-linear-to-r from-sky-500 via-indigo-500 to-violet-500" />
 
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
         <div className="mb-8 sm:mb-12 text-center">
@@ -318,7 +318,7 @@ export default function App() {
                 disabled={!generatedSignature}
                 className={`
                   w-full rounded-xl py-3 text-sm font-semibold border transition-all duration-200
-                  min-h-[48px] touch-manipulation
+                  min-h-12 touch-manipulation
                   ${
                     !generatedSignature
                       ? "border-slate-700 bg-transparent text-slate-600 cursor-not-allowed"
